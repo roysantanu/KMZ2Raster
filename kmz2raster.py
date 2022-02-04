@@ -4,7 +4,7 @@
 from zipfile import ZipFile
 from pathlib import Path
 from PIL import Image
-PIL.Image.MAX_IMAGE_PIXELS =1000000000
+Image.MAX_IMAGE_PIXELS = 9000000000
 import os
 from pykml import parser
 import rasterio
