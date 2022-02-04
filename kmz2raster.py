@@ -13,7 +13,7 @@ import shutil
 # specifying the zip file name
 #file_name = "/content/01.kmz"
 
-def getAfineParameter(kml_file):
+def getAfineParameter(kml_file,AW,AH):
   with open(kml_file) as f:
     doc = parser.parse(f).getroot()
   North=doc.Document.Folder.Region.LatLonAltBox.north
@@ -29,10 +29,14 @@ def getAfineParameter(kml_file):
 
 #Georeferenced the predicted mask
 #######################################
-def georef(unrectMask,kml_f):
-  newafine=getAfineParameter(kml_f)
+def georef(unrectMask,kml_f,AW,AH):
+  newafine=getAfineParameter(kml_f,AW,AH)
   #print (newafine)
   img=rasterio.open(unrectMask)
+  #Deifne coficients matrix for transformation
+  #afn=img.transform
+  #New Afine transfomation matix
+  #newafine=img.transform
   #Open and geo-refernced the image
   with rasterio.open(unrectMask) as dataset:
     img_p=dataset.read(
@@ -52,6 +56,8 @@ def KMZextractor(file_name):
     if not os.path.isdir(dir_name):
       os.makedirs(dir_name)
     # printing all the contents of the zip file
+    #zip.printdir()
+
     # extracting all the files
     #print('Extracting all the files now...')
     zip.extractall(dir_name)
@@ -62,11 +68,12 @@ def KMZextractor(file_name):
 def MergeImageGeoref(file_name):
   dir_name=KMZextractor(file_name)
   parentDir=Path(file_name).parent
-  parentDir=os.path.join(parentDir,'output')
-  if not os.path.isdir(parentDir):
-    os.makedirs(parentDir)
-  #if not os.path.isfile(parentDir):
-      #os.makedirs(parentDir)
+  #parentDir=os.path.join(parentDir,'output')
+  #checkDir=os.path.isdir(parentDir)
+  #while True:
+    #os.makedirs(parentDir)
+  #if not os.path.isdir(parentDir):
+    #os.makedirs(parentDir)
   outfullImage=os.path.join(parentDir,(Path(file_name).name).replace('.kmz','.JPEG'))
   #Get filename with Level, max Rows and columns
   #def getFilenameWithLRC(dir_name):
@@ -98,21 +105,33 @@ def MergeImageGeoref(file_name):
       width.append(w)
     if h not in height:
       height.append(h)
+    #width =width+w
+    #height =height+h
   AW,AH=width[0]*(max(maxCol))+width[1],height[0]*(max(maxRow))+height[1]
   W,H =width[0],height[0] #1024,1024 #width[0],height[1]
   WIDTH,HEIGHT=1024*(max(maxCol)+1),1024*(max(maxRow)+1) #width[0]*(max(maxCol))+width[1],height[0]*(max(maxRow))+height[1]
   print (WIDTH,HEIGHT)
   new_im = Image.new('RGB', (WIDTH,HEIGHT))
+  #outfullImage='/content/aft_2020_037706000_01.jpg'
+  #new_im = Image.new('L', (width, height))
+  #print (f,W,H)
   c = 0
   for i in range(0, HEIGHT, H):
     for j in range(0, WIDTH, W):
+
+        #box = (j, i, j + W, i + H)
+        #cropimg = img[i:i + H, j:j + W]
+        #prd = prediction(cropimg)
+        #prd = Image.fromarray(img)
       if c < len(filename_filter):
+        #print (c, j, i)
+        #print (filename_filter[c],j,i, 'count ',c)
         img =  Image.open(filename_filter[c])
         new_im.paste(img, (j, i))
       c += 1
   cropimg =new_im.crop((0, 0, AW, AH)) #new_im[0:0, AW:AH]
   cropimg.save(outfullImage)
-  georef(outfullImage,os.path.join(dir_name,'doc.kml'))
+  georef(outfullImage,os.path.join(dir_name,'doc.kml'),AW,AH)
   shutil.rmtree(dir_name)
   return outfullImage
 
