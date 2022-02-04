@@ -8,6 +8,7 @@ import os
 from pykml import parser
 import rasterio
 from rasterio.enums import Resampling
+from rasterio.io import MemoryFile
 import shutil
 
 # specifying the zip file name
@@ -38,14 +39,20 @@ def georef(unrectMask,kml_f,AW,AH):
   #New Afine transfomation matix
   #newafine=img.transform
   #Open and geo-refernced the image
+  #name=unrectMask
+  #output=Path(file_name).name
   with rasterio.open(unrectMask) as dataset:
     img_p=dataset.read(
         out_shape=(3, img.shape[0], img.shape[1])
     )
+    dataset.close()
+  img.close()
   with rasterio.open(
-      unrectMask,'w',driver='JPEG',
-      height=img_p.shape[1],width=img_p.shape[2],count=3,dtype=img_p.dtype,crs='EPSG:4326',transform=newafine,resampling=Resampling.bilinear) as dst:
-      dst.write(img_p)
+    unrectMask,'w',driver='JPEG',
+    height=img_p.shape[1],width=img_p.shape[2],count=3,
+    dtype=img_p.dtype,crs='EPSG:4326',transform=newafine,
+    resampling=Resampling.bilinear) as dst:
+    dst.write(img_p)
   return unrectMask
 
 def KMZextractor(file_name):
@@ -128,10 +135,13 @@ def MergeImageGeoref(file_name):
         #print (filename_filter[c],j,i, 'count ',c)
         img =  Image.open(filename_filter[c])
         new_im.paste(img, (j, i))
+        img.close()
       c += 1
   cropimg =new_im.crop((0, 0, AW, AH)) #new_im[0:0, AW:AH]
   cropimg.save(outfullImage)
   georef(outfullImage,os.path.join(dir_name,'doc.kml'),AW,AH)
-  shutil.rmtree(dir_name)
+  try:
+    shutil.rmtree(dir_name)
+  except:
+    next
   return outfullImage
-
